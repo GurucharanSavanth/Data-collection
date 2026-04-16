@@ -11,7 +11,6 @@ set "PYTHON_EXE="
 set "PYTHON_INSTALLER=%TEMP%\csv_record_manager_python_installer.exe"
 set "PYTHON_TARGET_DIR="
 set "PYTHON_INSTALL_URL="
-set "WINGET_PYTHON_ID=Python.Python.3.13"
 
 echo ==================================================
 echo CSV Record Manager Bootstrap
@@ -97,23 +96,19 @@ exit /b 0
 set "PYTHON_EXE="
 
 for /f "delims=" %%I in ('where python.exe 2^>nul') do (
-    if exist "%%~fI" (
-        set "PYTHON_EXE=%%~fI"
-        exit /b 0
-    )
+    call :TryPythonCandidate "%%~fI"
+    if defined PYTHON_EXE exit /b 0
 )
 
 for /f "usebackq delims=" %%I in (`py -3 -c "import sys; print(sys.executable)" 2^>nul`) do (
-    if exist "%%~fI" (
-        set "PYTHON_EXE=%%~fI"
-        exit /b 0
-    )
+    call :TryPythonCandidate "%%~fI"
+    if defined PYTHON_EXE exit /b 0
 )
 
-if defined PYTHON_TARGET_DIR if exist "%PYTHON_TARGET_DIR%\python.exe" (
-    set "PYTHON_EXE=%PYTHON_TARGET_DIR%\python.exe"
-    exit /b 0
+if defined PYTHON_TARGET_DIR (
+    call :TryPythonCandidate "%PYTHON_TARGET_DIR%\python.exe"
 )
+if defined PYTHON_EXE exit /b 0
 
 for %%D in (
     "%LocalAppData%\Programs\Python"
@@ -122,17 +117,42 @@ for %%D in (
 ) do (
     if exist "%%~fD" (
         for /f "delims=" %%P in ('dir /b /ad /o-n "%%~fD\Python*" 2^>nul') do (
-            if exist "%%~fD\%%P\python.exe" (
-                set "PYTHON_EXE=%%~fD\%%P\python.exe"
-                exit /b 0
-            )
+            call :TryPythonCandidate "%%~fD\%%P\python.exe"
+            if defined PYTHON_EXE exit /b 0
         )
     )
 )
 
 exit /b 0
 
+:TryPythonCandidate
+set "PYTHON_CANDIDATE=%~f1"
+if not defined PYTHON_CANDIDATE exit /b 0
+if not exist "%PYTHON_CANDIDATE%" exit /b 0
+
+"%PYTHON_CANDIDATE%" --version >nul 2>&1
+if errorlevel 1 exit /b 0
+
+set "PYTHON_EXE=%PYTHON_CANDIDATE%"
+exit /b 0
+
 :InstallPython
+where winget.exe >nul 2>&1
+if not errorlevel 1 (
+    echo Installing Python with winget...
+    winget install python --silent --force --accept-source-agreements --accept-package-agreements --disable-interactivity
+    if not errorlevel 1 (
+        call :RefreshEnvironment
+        call :LocatePython
+        if defined PYTHON_EXE exit /b 0
+        echo winget reported success, but Python is still not available in the current session.
+    ) else (
+        echo winget installation failed. Falling back to the official Python installer...
+    )
+) else (
+    echo winget is not available. Falling back to the official Python installer...
+)
+
 if exist "%PYTHON_INSTALLER%" del /f /q "%PYTHON_INSTALLER%" >nul 2>&1
 
 echo Downloading official Python installer:
@@ -147,32 +167,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
     "  exit 1" ^
     "}"
 
-if not errorlevel 1 (
-    echo Running official Python installer silently...
-    start /wait "" "%PYTHON_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_pip=1 Include_tcltk=1 Include_test=0 Include_doc=0 Include_dev=0 Shortcuts=0 SimpleInstall=1 TargetDir="%PYTHON_TARGET_DIR%"
-    call :RefreshEnvironment
-    call :LocatePython
-    if defined PYTHON_EXE exit /b 0
-    echo Official installer completed, but Python is still not available in the current session.
-)
+if errorlevel 1 exit /b 1
 
-where winget.exe >nul 2>&1
-if errorlevel 1 (
-    echo winget is not available as a fallback installer.
-    exit /b 1
-)
-
-echo Falling back to winget silent installation...
-winget install --exact --id %WINGET_PYTHON_ID% --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
-if errorlevel 1 (
-    echo winget fallback installation failed.
-    exit /b 1
-)
-
+echo Running official Python installer silently...
+start /wait "" "%PYTHON_INSTALLER%" /quiet InstallAllUsers=0 PrependPath=1 Include_pip=1 Include_tcltk=1 Include_test=0 Include_doc=0 Include_dev=0 Shortcuts=0 SimpleInstall=1 TargetDir="%PYTHON_TARGET_DIR%"
 call :RefreshEnvironment
 call :LocatePython
 if defined PYTHON_EXE exit /b 0
 
+echo Official installer completed, but Python is still not available in the current session.
 exit /b 1
 
 :RefreshEnvironment
