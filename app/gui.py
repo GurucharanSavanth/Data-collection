@@ -58,6 +58,8 @@ class RecordManagerApp:
         self.status_var = tk.StringVar(value=saved_form.get("status", self.status_values[0]))
         self.mode_var = tk.StringVar(value="Mode: idle")
         self.record_id_var = tk.StringVar(value="Selected Record ID: none")
+        self.created_at_var = tk.StringVar(value="-")
+        self.updated_at_var = tk.StringVar(value="-")
         self.status_message_var = tk.StringVar(value="Ready.")
 
         self._build_layout()
@@ -85,13 +87,15 @@ class RecordManagerApp:
         table_frame.columnconfigure(0, weight=1)
         table_frame.rowconfigure(0, weight=1)
 
-        columns = ("record_id", "name", "phone_number", "status", "short_note")
+        columns = ("record_id", "name", "phone_number", "status", "created_at", "updated_at", "short_note")
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", selectmode="browse")
         headings = {
             "record_id": "Record ID",
             "name": "Name",
             "phone_number": "Phone Number",
             "status": "Status",
+            "created_at": "Created At",
+            "updated_at": "Updated At",
             "short_note": "Short Note / Description",
         }
         widths = {
@@ -99,7 +103,9 @@ class RecordManagerApp:
             "name": 190,
             "phone_number": 150,
             "status": 100,
-            "short_note": 320,
+            "created_at": 145,
+            "updated_at": 145,
+            "short_note": 280,
         }
         for column in columns:
             self.tree.heading(column, text=headings[column])
@@ -113,7 +119,7 @@ class RecordManagerApp:
         form_frame = ttk.Frame(self.root, padding=(6, 6, 12, 6))
         form_frame.grid(row=1, column=1, sticky="nsew")
         form_frame.columnconfigure(1, weight=1)
-        form_frame.rowconfigure(7, weight=1)
+        form_frame.rowconfigure(9, weight=1)
 
         ttk.Label(form_frame, text="Record Details", style="Heading.TLabel").grid(row=0, column=0, columnspan=2, sticky=W, pady=(0, 8))
         ttk.Label(form_frame, textvariable=self.record_id_var).grid(row=1, column=0, columnspan=2, sticky=W, pady=(0, 12))
@@ -136,12 +142,18 @@ class RecordManagerApp:
         self.status_combo = ttk.Combobox(form_frame, textvariable=self.status_var, values=self.status_values, state="readonly")
         self.status_combo.grid(row=6, column=1, sticky="ew", pady=4)
 
-        ttk.Label(form_frame, text="Short Note / Description").grid(row=7, column=0, sticky="nw", padx=(0, 8), pady=4)
+        ttk.Label(form_frame, text="Created At").grid(row=7, column=0, sticky=W, padx=(0, 8), pady=4)
+        ttk.Label(form_frame, textvariable=self.created_at_var).grid(row=7, column=1, sticky="w", pady=4)
+
+        ttk.Label(form_frame, text="Updated At").grid(row=8, column=0, sticky=W, padx=(0, 8), pady=4)
+        ttk.Label(form_frame, textvariable=self.updated_at_var).grid(row=8, column=1, sticky="w", pady=4)
+
+        ttk.Label(form_frame, text="Short Note / Description").grid(row=9, column=0, sticky="nw", padx=(0, 8), pady=4)
         self.short_note_text = tk.Text(form_frame, height=10, wrap="word")
-        self.short_note_text.grid(row=7, column=1, sticky="nsew", pady=4)
+        self.short_note_text.grid(row=9, column=1, sticky="nsew", pady=4)
 
         button_frame = ttk.Frame(form_frame, padding=(0, 12, 0, 0))
-        button_frame.grid(row=8, column=0, columnspan=2, sticky="ew")
+        button_frame.grid(row=10, column=0, columnspan=2, sticky="ew")
         for index in range(3):
             button_frame.columnconfigure(index, weight=1)
 
@@ -207,6 +219,8 @@ class RecordManagerApp:
                     record.get("name", ""),
                     record.get("phone_number", ""),
                     record.get("status", ""),
+                    record.get("created_at", ""),
+                    record.get("updated_at", ""),
                     record.get("short_note", ""),
                 ),
             )
@@ -253,6 +267,8 @@ class RecordManagerApp:
         self.name_var.set(record.get("name", ""))
         self.phone_var.set(record.get("phone_number", ""))
         self.status_var.set(record.get("status", self.status_values[0]))
+        self.created_at_var.set(record.get("created_at", "") or "-")
+        self.updated_at_var.set(record.get("updated_at", "") or "-")
         self.short_note_text.delete("1.0", END)
         self.short_note_text.insert("1.0", record.get("short_note", ""))
         self.set_mode("edit")
@@ -295,6 +311,8 @@ class RecordManagerApp:
     def clear_form(self) -> None:
         self.current_record_id = ""
         self.record_id_var.set("Selected Record ID: new record (ID assigned on save)")
+        self.created_at_var.set("Assigned on save")
+        self.updated_at_var.set("Assigned on save")
         self.title_var.set("")
         self.category_var.set("")
         self.name_var.set("")
@@ -336,7 +354,11 @@ class RecordManagerApp:
             self._refresh_reference_values()
             self.filtered_records = self.csv_manager.filter_records(self.records, self.search_var.get())
             self.populate_tree(self.current_record_id)
-            self.record_id_var.set(f"Selected Record ID: {self.current_record_id}")
+            saved_record = self.csv_manager.find_record(self.records, self.current_record_id)
+            if saved_record:
+                self.load_record_into_form(saved_record)
+            else:
+                self.record_id_var.set(f"Selected Record ID: {self.current_record_id}")
             self.session_manager.record_successful_save(len(self.records))
             self.set_mode("edit")
             self.set_status(f"Record {self.current_record_id} {action} successfully.")

@@ -216,6 +216,8 @@ class CSVManager:
                     record.get("phone_number", ""),
                     record.get("status", ""),
                     record.get("short_note", ""),
+                    record.get("created_at", ""),
+                    record.get("updated_at", ""),
                 ]
             ).lower()
             if query in haystack:

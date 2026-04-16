@@ -33,9 +33,9 @@ This project is designed to be bootstrapped and launched from a single Windows b
 
 ## UI behavior
 
-- The dashboard table shows `Record ID`, `Name`, `Phone Number`, `Status`, and `Short Note / Description`.
+- The dashboard table shows `Record ID`, `Name`, `Phone Number`, `Status`, `Created At`, `Updated At`, and `Short Note / Description`.
 - `Title` and `Category` use editable dropdowns: existing values are offered automatically, but new values can still be typed.
-- The right-side form supports `Title`, `Category`, `Name`, `Phone Number`, `Status`, and `Short Note / Description`.
+- The right-side form supports `Title`, `Category`, `Name`, `Phone Number`, `Status`, `Created At`, `Updated At`, and `Short Note / Description`.
 
 ## Rerun safety
 

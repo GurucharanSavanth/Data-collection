@@ -1,16 +1,16 @@
 {
   "window_geometry": "1080x1000+931+0",
   "window_state": "zoomed",
-  "search_text": "",
-  "selected_record_id": "",
-  "mode": "idle",
-  "last_opened_at": "2026-04-16 13:05:57",
+  "search_text": "test",
+  "selected_record_id": "REC-48D50A1B76F3",
+  "mode": "edit",
+  "last_opened_at": "2026-04-16 13:35:45",
   "form_values": {
-    "record_id": "",
-    "title": "",
-    "category": "",
-    "name": "",
-    "phone_number": "",
+    "record_id": "REC-48D50A1B76F3",
+    "title": "set",
+    "category": "test",
+    "name": "test",
+    "phone_number": "3141344",
     "status": "Open",
     "short_note": ""
   }
