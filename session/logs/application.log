@@ -13,3 +13,151 @@
 2026-04-16 13:31:53,937 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
 2026-04-16 13:35:33,508 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
 2026-04-16 13:35:45,507 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-18 10:28:42,817 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-18 12:01:37,169 | INFO | record_manager_dashboard | Normalizing settings to application schema version 1.1.0
+2026-04-18 12:01:37,172 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-18 12:03:12,774 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-18 12:09:28,149 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-18 12:13:41,020 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-18 13:04:22,429 | INFO | record_manager_dashboard | Applying database schema version 1
+2026-04-18 13:04:22,466 | INFO | record_manager_dashboard | Migrated 2 legacy CSV records into SQLite runtime store.
+2026-04-18 13:04:22,466 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-18 13:04:41,696 | ERROR | record_manager_dashboard | Failed to bootstrap super admin
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 151, in handle_bootstrap
+    self.current_user = self.services.auth_service.bootstrap_super_admin(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 117, in bootstrap_super_admin
+    password_hash=hash_password(password),
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\security.py", line 25, in hash_password
+    validate_password_strength(password)
+  File "G:\Personal Builds\Data-collection\Data-collection\app\security.py", line 19, in validate_password_strength
+    raise ValueError("Password must mix upper- and lower-case characters.")
+ValueError: Password must mix upper- and lower-case characters.
+2026-04-18 13:05:17,243 | ERROR | record_manager_dashboard | Failed to bootstrap super admin
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 151, in handle_bootstrap
+    self.current_user = self.services.auth_service.bootstrap_super_admin(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 117, in bootstrap_super_admin
+    password_hash=hash_password(password),
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\security.py", line 25, in hash_password
+    validate_password_strength(password)
+  File "G:\Personal Builds\Data-collection\Data-collection\app\security.py", line 17, in validate_password_strength
+    raise ValueError(f"Password must contain at least {MIN_PASSWORD_LENGTH} characters.")
+ValueError: Password must contain at least 10 characters.
+2026-04-18 13:11:12,463 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 961, in create_user
+    self.refresh_records_tab()
+              ^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.
+2026-04-18 13:11:19,231 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 961, in create_user
+    self.refresh_records_tab()
+              ^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.
+2026-04-18 13:11:23,103 | ERROR | record_manager_dashboard | Failed to update user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 989, in update_user
+    self.version_tree.delete(*self.version_tree.get_children())
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 334, in update_user
+    raise ValueError("Actor or target no longer exists.")
+ValueError: Actor or target no longer exists.
+2026-04-18 13:11:36,467 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 961, in create_user
+    self.refresh_records_tab()
+              ^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 269, in create_user
+    normalized_login = validate_login_id(login_id)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\validators.py", line 22, in validate_login_id
+    raise ValueError("Login ID must be 3-64 characters and contain only letters, digits, '.', '_', '-', or '@'.")
+ValueError: Login ID must be 3-64 characters and contain only letters, digits, '.', '_', '-', or '@'.
+2026-04-18 13:11:42,863 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 961, in create_user
+    self.refresh_records_tab()
+              ^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.
+2026-04-18 13:11:49,552 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 961, in create_user
+    self.refresh_records_tab()
+              ^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.
+2026-04-18 13:12:55,259 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-18 13:16:23,946 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 1066, in create_user
+    created = self.services.user_service.create_user(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.
+2026-04-18 13:16:42,820 | ERROR | record_manager_dashboard | Failed during clean shutdown
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 1260, in on_close
+    self.session_manager.mark_clean_shutdown(self.build_shutdown_session_state())
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 1240, in build_shutdown_session_state
+    "short_note": self.record_short_note.get("1.0", END).strip() if hasattr(self, "record_short_note") else "",
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.12_3.12.2800.0_x64__qbz5n2kfra8p0\Lib\tkinter\__init__.py", line 3812, in get
+    return self.tk.call(self._w, 'get', index1, index2)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: invalid command name ".!frame2.!notebook.!frame.!frame3.!text"
+2026-04-18 13:17:00,221 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-18 13:18:51,343 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 1066, in create_user
+    created = self.services.user_service.create_user(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.
+2026-04-18 13:18:58,153 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 1066, in create_user
+    created = self.services.user_service.create_user(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.
+2026-04-18 13:19:12,872 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 1066, in create_user
+    created = self.services.user_service.create_user(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.
+2026-04-18 13:19:24,945 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 1066, in create_user
+    created = self.services.user_service.create_user(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.
+2026-04-18 13:19:45,158 | ERROR | record_manager_dashboard | Failed to create user
+Traceback (most recent call last):
+  File "G:\Personal Builds\Data-collection\Data-collection\app\gui.py", line 1066, in create_user
+    created = self.services.user_service.create_user(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\Personal Builds\Data-collection\Data-collection\app\services.py", line 286, in create_user
+    raise ValueError("Parent login ID does not exist.")
+ValueError: Parent login ID does not exist.

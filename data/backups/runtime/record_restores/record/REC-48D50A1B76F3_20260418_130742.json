@@ -1,0 +1,16 @@
+{
+  "application_number": "REC-48D50A1B76F3",
+  "candidate_login_id": null,
+  "candidate_user_id": null,
+  "created_at": "2026-04-16 13:23:51",
+  "deleted_at": null,
+  "name": "test",
+  "phone_number": "3141344",
+  "public_id": "REC-48D50A1B76F3",
+  "record_id": 2,
+  "short_note": "",
+  "status": "Open",
+  "title_display": "set",
+  "updated_at": "2026-04-18 13:07:42",
+  "version_number": 2
+}

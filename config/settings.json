@@ -1,21 +1,6 @@
 {
   "app_name": "Record Manager Dashboard",
-  "app_version": "1.1.0",
+  "app_version": "2.0.0",
   "window_title": "Record Manager Dashboard",
-  "default_window_size": "1280x800",
-  "csv_headers": [
-    "record_id",
-    "title",
-    "category",
-    "name",
-    "phone_number",
-    "status",
-    "short_note",
-    "created_at",
-    "updated_at"
-  ],
-  "status_values": [
-    "Open",
-    "Close"
-  ]
+  "default_window_size": "1360x860"
 }

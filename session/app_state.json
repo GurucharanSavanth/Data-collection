@@ -1,11 +1,11 @@
 {
-  "app_version": "1.1.0",
+  "app_version": "2.0.0",
   "first_run_completed": true,
-  "clean_shutdown": true,
+  "clean_shutdown": false,
   "unclean_previous_shutdown": false,
-  "last_startup_at": "2026-04-16 13:35:45",
-  "last_shutdown_at": "2026-04-16 13:35:53",
+  "last_startup_at": "2026-04-18 13:22:32",
+  "last_shutdown_at": "2026-04-18 13:22:26",
   "last_successful_save": "2026-04-16 13:23:51",
   "record_count": 2,
-  "last_error": ""
+  "last_error": "Password must contain at least 10 characters."
 }

@@ -1,0 +1,27 @@
+{
+  "migrated_count": 2,
+  "records": [
+    {
+      "category": "test",
+      "created_at": "2026-04-16 13:23:07",
+      "name": "tset",
+      "phone_number": "24525252352452",
+      "record_id": "REC-7294D763B597",
+      "short_note": "",
+      "status": "Open",
+      "title": "tset",
+      "updated_at": "2026-04-16 13:23:07"
+    },
+    {
+      "category": "test",
+      "created_at": "2026-04-16 13:23:51",
+      "name": "test",
+      "phone_number": "3141344",
+      "record_id": "REC-48D50A1B76F3",
+      "short_note": "",
+      "status": "Open",
+      "title": "set",
+      "updated_at": "2026-04-16 13:23:51"
+    }
+  ]
+}

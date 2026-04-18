@@ -1,16 +1,17 @@
 {
-  "window_geometry": "1080x1000+931+0",
-  "window_state": "zoomed",
-  "search_text": "test",
-  "selected_record_id": "REC-48D50A1B76F3",
-  "mode": "edit",
-  "last_opened_at": "2026-04-16 13:35:45",
-  "form_values": {
-    "record_id": "REC-48D50A1B76F3",
-    "title": "set",
-    "category": "test",
-    "name": "test",
-    "phone_number": "3141344",
+  "window_geometry": "1180x1000+-7+0",
+  "window_state": "normal",
+  "last_login_id": "123",
+  "selected_record_public_id": "",
+  "selected_candidate_login_id": "None",
+  "selected_user_login_id": "123",
+  "current_view": "dashboard",
+  "last_opened_at": "2026-04-18 13:22:33",
+  "record_form": {
+    "title_display": "tset",
+    "application_number": "",
+    "name": "",
+    "phone_number": "",
     "status": "Open",
     "short_note": ""
   }
