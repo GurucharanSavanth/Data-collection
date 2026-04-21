@@ -6,29 +6,34 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox
 
+from candidate_manager import CandidateManager
 from csv_manager import CSVManager
 from gui import RecordManagerApp
 from session_manager import SessionManager
 from utils import APP_ENCODING, ensure_dir, format_exception, safe_json_load, safe_json_write
+from version_history_manager import VersionHistoryManager
 
 
 DEFAULT_SETTINGS = {
     "app_name": "Record Manager Dashboard",
-    "app_version": "1.1.0",
+    "app_version": "2.0.0",
     "window_title": "Record Manager Dashboard",
     "default_window_size": "1280x800",
     "csv_headers": [
         "record_id",
         "title",
-        "category",
+        "application_number",
+        "referral_number",
+        "candidate_id",
         "name",
         "phone_number",
         "status",
         "short_note",
+        "archived_at",
         "created_at",
         "updated_at",
     ],
-    "status_values": ["Open", "Close"],
+    "status_values": ["Open", "Clone", "In Progress", "Forfeited"],
 }
 
 
@@ -97,29 +102,57 @@ def main() -> None:
         headers=settings["csv_headers"],
         logger=logger,
     )
-
-    def global_exception_handler(exc_type, exc_value, exc_traceback) -> None:
-        logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
-        session_manager.record_error(str(exc_value))
-        root = tk.Tk()
-        root.withdraw()
-        messagebox.showerror(
-            "Unexpected Error",
-            "An unexpected error occurred.\n\n"
-            "The technical details were written to session/logs/application.log.\n\n"
-            f"{exc_value}",
-        )
-        root.destroy()
-
-    sys.excepthook = global_exception_handler
+    candidate_manager = CandidateManager(
+        candidate_path=data_dir / "candidates.json",
+        logger=logger,
+    )
+    version_history_manager = VersionHistoryManager(
+        history_path=data_dir / "record_versions.json",
+        logger=logger,
+    )
 
     logger.info("Starting application from %s", project_root)
     root = tk.Tk()
+
+    def report_to_user(exc_value: BaseException) -> None:
+        try:
+            messagebox.showerror(
+                "Unexpected Error",
+                "An unexpected error occurred.\n\n"
+                "The technical details were written to session/logs/application.log.\n\n"
+                f"{exc_value}",
+                parent=root,
+            )
+        except Exception:
+            logger.exception("Failed to display error dialog")
+
+    def global_exception_handler(exc_type, exc_value, exc_traceback) -> None:
+        logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
+        try:
+            session_manager.record_error(str(exc_value))
+        except Exception:
+            logger.exception("Failed to record error state from excepthook")
+        if root.winfo_exists():
+            report_to_user(exc_value)
+
+    def tk_callback_exception(exc_type, exc_value, exc_traceback) -> None:
+        logger.error("Unhandled Tk callback exception", exc_info=(exc_type, exc_value, exc_traceback))
+        try:
+            session_manager.record_error(str(exc_value))
+        except Exception:
+            logger.exception("Failed to record Tk callback error state")
+        report_to_user(exc_value)
+
+    sys.excepthook = global_exception_handler
+    root.report_callback_exception = tk_callback_exception
+
     RecordManagerApp(
         root=root,
         settings=settings,
         csv_manager=csv_manager,
+        candidate_manager=candidate_manager,
         session_manager=session_manager,
+        version_history_manager=version_history_manager,
         logger=logger,
         csv_path=data_dir / "records.csv",
     )

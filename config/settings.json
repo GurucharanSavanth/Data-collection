@@ -1,21 +1,26 @@
 {
   "app_name": "Record Manager Dashboard",
-  "app_version": "1.1.0",
+  "app_version": "2.0.0",
   "window_title": "Record Manager Dashboard",
   "default_window_size": "1280x800",
   "csv_headers": [
     "record_id",
     "title",
-    "category",
+    "application_number",
+    "referral_number",
+    "candidate_id",
     "name",
     "phone_number",
     "status",
     "short_note",
+    "archived_at",
     "created_at",
     "updated_at"
   ],
   "status_values": [
     "Open",
-    "Close"
+    "Clone",
+    "In Progress",
+    "Forfeited"
   ]
 }

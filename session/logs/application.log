@@ -13,3 +13,12 @@
 2026-04-16 13:31:53,937 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
 2026-04-16 13:35:33,508 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
 2026-04-16 13:35:45,507 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\Data-collection\Data-collection
+2026-04-21 12:11:33,972 | INFO | record_manager_dashboard | Migrating transition CSV schema in G:\Personal Builds\tester\Data-collection\data\records.csv
+2026-04-21 12:11:33,975 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection
+2026-04-21 13:22:16,021 | INFO | record_manager_dashboard | Migrating pre-candidate CSV schema in G:\Personal Builds\tester\Data-collection\data\records.csv
+2026-04-21 13:22:16,021 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection
+2026-04-21 13:24:03,298 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection
+2026-04-21 13:26:02,156 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection
+2026-04-21 13:29:58,261 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection
+2026-04-21 13:32:33,204 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection
+2026-04-21 14:30:12,843 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection

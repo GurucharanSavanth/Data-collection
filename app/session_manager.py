@@ -10,14 +10,17 @@ from utils import current_timestamp, deep_merge, safe_json_load, safe_json_write
 SESSION_DEFAULTS: dict[str, Any] = {
     "window_geometry": "",
     "window_state": "normal",
-    "search_text": "",
+    "selected_candidate": "None",
+    "selected_candidate_id": "",
+    "view_mode": "Active",
     "selected_record_id": "",
     "mode": "idle",
     "last_opened_at": "",
     "form_values": {
         "record_id": "",
         "title": "",
-        "category": "",
+        "application_number": "",
+        "candidate_id": "",
         "name": "",
         "phone_number": "",
         "status": "Open",
@@ -27,7 +30,7 @@ SESSION_DEFAULTS: dict[str, Any] = {
 
 
 APP_STATE_DEFAULTS: dict[str, Any] = {
-    "app_version": "1.1.0",
+    "app_version": "2.0.0",
     "first_run_completed": False,
     "clean_shutdown": True,
     "unclean_previous_shutdown": False,

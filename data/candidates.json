@@ -1,0 +1,25 @@
+{
+  "candidates": [
+    {
+      "candidate_id": "CAN-0ABBFC080D9E",
+      "display_name": "test",
+      "archived_at": "",
+      "created_at": "2026-04-21 13:22:16",
+      "updated_at": "2026-04-21 13:22:16"
+    },
+    {
+      "candidate_id": "CAN-B2FDA4F87748",
+      "display_name": "TestSet",
+      "archived_at": "",
+      "created_at": "2026-04-21 13:22:16",
+      "updated_at": "2026-04-21 13:22:16"
+    },
+    {
+      "candidate_id": "CAN-D32E9029148D",
+      "display_name": "tset",
+      "archived_at": "",
+      "created_at": "2026-04-21 13:22:16",
+      "updated_at": "2026-04-21 13:22:16"
+    }
+  ]
+}

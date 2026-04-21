@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import logging
 import os
+import re
 import tempfile
 import uuid
 from pathlib import Path
@@ -20,6 +21,55 @@ LEGACY_HEADERS = (
     "created_at",
     "updated_at",
 )
+
+PRE_CANDIDATE_HEADERS = (
+    "record_id",
+    "title",
+    "application_number",
+    "referral_number",
+    "name",
+    "phone_number",
+    "status",
+    "short_note",
+    "archived_at",
+    "created_at",
+    "updated_at",
+)
+
+TRANSITION_HEADERS = (
+    "record_id",
+    "title",
+    "category",
+    "name",
+    "phone_number",
+    "status",
+    "short_note",
+    "created_at",
+    "updated_at",
+)
+
+EXPORT_HEADERS = (
+    "record_id",
+    "title",
+    "application_number",
+    "referral_number",
+    "candidate_id",
+    "name",
+    "phone_number",
+    "status",
+    "short_note",
+    "created_at",
+    "updated_at",
+)
+
+CSV_INJECTION_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _sanitize_export_cell(value: Any) -> str:
+    text = "" if value is None else str(value)
+    if text and text[0] in CSV_INJECTION_TRIGGERS:
+        return "'" + text
+    return text
 
 
 class CSVManager:
@@ -54,6 +104,16 @@ class CSVManager:
         if list(header) == self.headers:
             return
 
+        if header == PRE_CANDIDATE_HEADERS:
+            self.logger.info("Migrating pre-candidate CSV schema in %s", self.csv_path)
+            self._migrate_pre_candidate_csv()
+            return
+
+        if header == TRANSITION_HEADERS:
+            self.logger.info("Migrating transition CSV schema in %s", self.csv_path)
+            self._migrate_transition_csv()
+            return
+
         if header == LEGACY_HEADERS:
             self.logger.info("Migrating legacy CSV schema in %s", self.csv_path)
             self._migrate_legacy_csv()
@@ -75,6 +135,9 @@ class CSVManager:
                 normalized["record_id"] = self.generate_record_id()
             else:
                 raise ValueError("record_id is required")
+        if not normalized.get("referral_number"):
+            normalized["referral_number"] = self.generate_referral_number(normalized["record_id"])
+        normalized["name"] = " ".join(normalized.get("name", "").split())
         return normalized
 
     def _write_records_atomically(self, normalized_records: list[dict[str, str]], backup_reason: str, create_backup: bool) -> None:
@@ -109,6 +172,60 @@ class CSVManager:
             temp_path.unlink(missing_ok=True)
             raise
 
+    def _migrate_pre_candidate_csv(self) -> None:
+        with self.csv_path.open("r", encoding=CSV_ENCODING, newline="") as handle:
+            reader = csv.DictReader(handle)
+            migrated_records = []
+            for row in reader:
+                migrated_records.append(
+                    self._normalize_record(
+                        {
+                            "record_id": row.get("record_id", ""),
+                            "title": row.get("title", ""),
+                            "application_number": row.get("application_number", ""),
+                            "referral_number": row.get("referral_number", ""),
+                            "candidate_id": "",
+                            "name": row.get("name", ""),
+                            "phone_number": row.get("phone_number", ""),
+                            "status": row.get("status", "Open"),
+                            "short_note": row.get("short_note", ""),
+                            "archived_at": row.get("archived_at", ""),
+                            "created_at": row.get("created_at", ""),
+                            "updated_at": row.get("updated_at", ""),
+                        },
+                        allow_generated_id=True,
+                    )
+                )
+
+        self._write_records_atomically(migrated_records, backup_reason="schema_upgrade", create_backup=True)
+
+    def _migrate_transition_csv(self) -> None:
+        with self.csv_path.open("r", encoding=CSV_ENCODING, newline="") as handle:
+            reader = csv.DictReader(handle)
+            migrated_records = []
+            for row in reader:
+                migrated_records.append(
+                    self._normalize_record(
+                        {
+                            "record_id": row.get("record_id", ""),
+                            "title": row.get("title", ""),
+                            "application_number": row.get("category", ""),
+                            "referral_number": self.generate_referral_number(row.get("record_id", "")),
+                            "candidate_id": "",
+                            "name": row.get("name", ""),
+                            "phone_number": row.get("phone_number", ""),
+                            "status": row.get("status", "Open"),
+                            "short_note": row.get("short_note", ""),
+                            "archived_at": "",
+                            "created_at": row.get("created_at", ""),
+                            "updated_at": row.get("updated_at", ""),
+                        },
+                        allow_generated_id=True,
+                    )
+                )
+
+        self._write_records_atomically(migrated_records, backup_reason="schema_upgrade", create_backup=True)
+
     def _migrate_legacy_csv(self) -> None:
         with self.csv_path.open("r", encoding=CSV_ENCODING, newline="") as handle:
             reader = csv.DictReader(handle)
@@ -119,11 +236,14 @@ class CSVManager:
                         {
                             "record_id": row.get("record_id", ""),
                             "title": row.get("title", ""),
-                            "category": row.get("category", ""),
+                            "application_number": row.get("category", ""),
+                            "referral_number": self.generate_referral_number(row.get("record_id", "")),
+                            "candidate_id": "",
                             "name": "",
                             "phone_number": "",
                             "status": row.get("status", "Open"),
                             "short_note": row.get("notes", ""),
+                            "archived_at": "",
                             "created_at": row.get("created_at", ""),
                             "updated_at": row.get("updated_at", ""),
                         },
@@ -150,8 +270,7 @@ class CSVManager:
                     self.logger.warning("Skipping malformed CSV row %s", index)
                     continue
                 try:
-                    normalized = self._normalize_record(row)
-                    records.append(normalized)
+                    records.append(self._normalize_record(row))
                 except Exception:
                     self.logger.exception("Failed to normalize CSV row %s", index)
 
@@ -163,19 +282,51 @@ class CSVManager:
         normalized_records = [self._normalize_record(record) for record in records]
         self._write_records_atomically(normalized_records, backup_reason=backup_reason, create_backup=True)
 
+    def export_records(self, records: list[dict[str, str]], destination: Path) -> None:
+        ensure_dir(destination.parent)
+        temp_handle, temp_name = tempfile.mkstemp(
+            prefix="export_",
+            suffix=".csv",
+            dir=str(destination.parent),
+            text=True,
+        )
+        temp_path = Path(temp_name)
+        try:
+            with os.fdopen(temp_handle, "w", encoding=CSV_ENCODING, newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=EXPORT_HEADERS)
+                writer.writeheader()
+                for record in records:
+                    writer.writerow(
+                        {column: _sanitize_export_cell(record.get(column, "")) for column in EXPORT_HEADERS}
+                    )
+            os.replace(temp_path, destination)
+        except Exception:
+            self.logger.exception("Failed to export CSV")
+            temp_path.unlink(missing_ok=True)
+            raise
+
     def generate_record_id(self) -> str:
         return f"REC-{uuid.uuid4().hex[:12].upper()}"
 
+    def generate_referral_number(self, record_id: str) -> str:
+        clean_record_id = re.sub(r"[^A-Z0-9]", "", record_id.upper())
+        token = clean_record_id[-8:] if clean_record_id else uuid.uuid4().hex[:8].upper()
+        return f"REF-{token}"
+
     def build_new_record(self, form_data: dict[str, str]) -> dict[str, str]:
         timestamp = current_timestamp()
+        record_id = self.generate_record_id()
         record = {
-            "record_id": self.generate_record_id(),
+            "record_id": record_id,
             "title": form_data.get("title", "").strip(),
-            "category": form_data.get("category", "").strip(),
+            "application_number": form_data.get("application_number", "").strip(),
+            "referral_number": self.generate_referral_number(record_id),
+            "candidate_id": form_data.get("candidate_id", "").strip(),
             "name": form_data.get("name", "").strip(),
             "phone_number": form_data.get("phone_number", "").strip(),
             "status": form_data.get("status", "").strip(),
             "short_note": form_data.get("short_note", "").strip(),
+            "archived_at": "",
             "created_at": timestamp,
             "updated_at": timestamp,
         }
@@ -185,7 +336,8 @@ class CSVManager:
         updated = dict(existing_record)
         updated["record_id"] = record_id
         updated["title"] = form_data.get("title", "").strip()
-        updated["category"] = form_data.get("category", "").strip()
+        updated["application_number"] = form_data.get("application_number", "").strip()
+        updated["candidate_id"] = form_data.get("candidate_id", "").strip()
         updated["name"] = form_data.get("name", "").strip()
         updated["phone_number"] = form_data.get("phone_number", "").strip()
         updated["status"] = form_data.get("status", "").strip()
@@ -194,36 +346,60 @@ class CSVManager:
         updated["updated_at"] = current_timestamp()
         return self._normalize_record(updated)
 
+    def build_archived_record(self, existing_record: dict[str, str], archived_at: str | None = None) -> dict[str, str]:
+        archived = dict(existing_record)
+        timestamp = archived_at or current_timestamp()
+        archived["archived_at"] = timestamp
+        archived["updated_at"] = timestamp
+        return self._normalize_record(archived)
+
+    def build_unarchived_record(self, existing_record: dict[str, str]) -> dict[str, str]:
+        restored = dict(existing_record)
+        restored["archived_at"] = ""
+        restored["updated_at"] = current_timestamp()
+        return self._normalize_record(restored)
+
+    def build_restored_record(self, record_id: str, snapshot: dict[str, str]) -> dict[str, str]:
+        restored = dict(snapshot)
+        restored["record_id"] = record_id
+        restored["archived_at"] = snapshot.get("archived_at", "")
+        restored["created_at"] = snapshot.get("created_at", "") or current_timestamp()
+        restored["updated_at"] = current_timestamp()
+        return self._normalize_record(restored)
+
     def find_record(self, records: list[dict[str, str]], record_id: str) -> dict[str, str] | None:
+        target_id = str(record_id).strip()
         for record in records:
-            if record.get("record_id") == record_id:
+            if record.get("record_id", "") == target_id:
                 return record
         return None
 
-    def filter_records(self, records: list[dict[str, str]], search_text: str) -> list[dict[str, str]]:
-        query = search_text.strip().lower()
-        if not query:
-            return list(records)
+    def filter_records(self, records: list[dict[str, str]], candidate_id: str, view_mode: str = "Active") -> list[dict[str, str]]:
+        normalized_candidate_id = str(candidate_id).strip()
+        if not normalized_candidate_id:
+            return []
 
+        normalized_view_mode = str(view_mode).strip().lower() or "active"
         filtered: list[dict[str, str]] = []
         for record in records:
-            haystack = " ".join(
-                [
-                    record.get("record_id", ""),
-                    record.get("title", ""),
-                    record.get("category", ""),
-                    record.get("name", ""),
-                    record.get("phone_number", ""),
-                    record.get("status", ""),
-                    record.get("short_note", ""),
-                    record.get("created_at", ""),
-                    record.get("updated_at", ""),
-                ]
-            ).lower()
-            if query in haystack:
-                filtered.append(record)
+            if record.get("candidate_id", "").strip() != normalized_candidate_id:
+                continue
+            is_archived = bool(record.get("archived_at", "").strip())
+            if normalized_view_mode == "archived" and not is_archived:
+                continue
+            if normalized_view_mode == "active" and is_archived:
+                continue
+            filtered.append(record)
+        filtered.sort(key=lambda item: item.get("updated_at", ""), reverse=True)
         return filtered
 
-    def get_unique_values(self, records: list[dict[str, str]], field_name: str) -> list[str]:
-        values = {record.get(field_name, "").strip() for record in records if record.get(field_name, "").strip()}
-        return sorted(values, key=str.lower)
+    def get_archived_records(self, records: list[dict[str, str]], candidate_id: str = "") -> list[dict[str, str]]:
+        normalized_candidate_id = str(candidate_id).strip()
+        archived_records = [
+            record
+            for record in records
+            if record.get("archived_at", "").strip()
+            and (not normalized_candidate_id or record.get("candidate_id", "").strip() == normalized_candidate_id)
+        ]
+        archived_records.sort(key=lambda item: item.get("archived_at", ""), reverse=True)
+        return archived_records
