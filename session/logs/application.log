@@ -22,3 +22,7 @@
 2026-04-21 13:29:58,261 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection
 2026-04-21 13:32:33,204 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection
 2026-04-21 14:30:12,843 | INFO | record_manager_dashboard | Starting application from G:\Personal Builds\tester\Data-collection
+2026-04-22 13:48:33,583 | INFO | record_manager_dashboard | Install root: G:\Personal Builds\tester\Data-collection
+2026-04-22 13:48:33,583 | INFO | record_manager_dashboard | Resource root: G:\Personal Builds\tester\Data-collection
+2026-04-22 13:48:33,583 | INFO | record_manager_dashboard | Storage root: G:\Personal Builds\tester\Data-collection
+2026-04-22 13:48:33,585 | INFO | record_manager_dashboard | Starting application from storage root G:\Personal Builds\tester\Data-collection

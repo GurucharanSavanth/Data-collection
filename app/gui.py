@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 import logging
 import re
 from pathlib import Path
@@ -60,6 +61,7 @@ class RecordManagerApp:
 
         self.candidate_var = tk.StringVar(value=self.session_state.get("selected_candidate", "None"))
         self.view_mode_var = tk.StringVar(value=self.session_state.get("view_mode", "Active"))
+        self.search_var = tk.StringVar(value=self.session_state.get("search_text", ""))
         self.title_var = tk.StringVar(value=saved_form.get("title", ""))
         self.application_number_var = tk.StringVar(value=saved_form.get("application_number", ""))
         self.name_var = tk.StringVar(value=saved_form.get("name", ""))
@@ -68,6 +70,7 @@ class RecordManagerApp:
         self.created_at_var = tk.StringVar(value="-")
         self.updated_at_var = tk.StringVar(value="-")
         self.footer_status_var = tk.StringVar(value="Logged out.")
+        self.summary_var = tk.StringVar(value="")
         self.version_label_var = tk.StringVar(value=f"Version {settings.get('app_version', '2.0.0')}")
 
         self.root.title(settings.get("window_title", "Record Manager Dashboard"))
@@ -164,7 +167,7 @@ class RecordManagerApp:
         self.restore_candidate_button = tk.Button(
             candidate_button_frame,
             text="Unarchive",
-            width=9,
+            width=13,
             command=self.open_unarchive_candidate_dialog,
         )
         self.restore_candidate_button.grid(row=0, column=3, padx=(4, 0))
@@ -183,6 +186,28 @@ class RecordManagerApp:
             width=14,
         )
         self.view_mode_combo.grid(row=2, column=1, sticky="w", pady=(6, 0))
+
+        tk.Label(header_frame, text="Search", bg=self.default_bg, font=("Segoe UI", 8)).grid(
+            row=3,
+            column=0,
+            sticky="w",
+            pady=(6, 0),
+        )
+        search_frame = tk.Frame(header_frame, bg=self.default_bg)
+        search_frame.grid(row=3, column=1, columnspan=2, sticky="ew", pady=(6, 0))
+        search_frame.columnconfigure(0, weight=1)
+
+        self.search_entry = tk.Entry(search_frame, textvariable=self.search_var, relief=tk.SUNKEN, bd=1)
+        self.search_entry.grid(row=0, column=0, sticky="ew")
+        tk.Button(search_frame, text="Clear", width=8, command=self.clear_search).grid(row=0, column=1, padx=(8, 0))
+
+        tk.Label(
+            header_frame,
+            textvariable=self.summary_var,
+            bg=self.default_bg,
+            font=("Segoe UI", 8),
+            anchor="w",
+        ).grid(row=4, column=0, columnspan=3, sticky="ew", pady=(6, 0))
 
         self.body_pane = tk.PanedWindow(
             self.root,
@@ -441,6 +466,7 @@ class RecordManagerApp:
         self.candidate_combo.bind("<Insert>", lambda _event: self.create_candidate_from_dialog())
         self.candidate_combo.bind("<F2>", lambda _event: self.edit_selected_candidate())
         self.candidate_combo.bind("<Delete>", lambda _event: self.archive_selected_candidate())
+        self.search_var.trace_add("write", self.on_search_changed)
         self.title_var.trace_add("write", self.on_form_changed)
         self.application_number_var.trace_add("write", self.on_form_changed)
         self.name_var.trace_add("write", self.on_form_changed)
@@ -517,8 +543,10 @@ class RecordManagerApp:
     def _sync_candidate_menu_state(self) -> None:
         selected_candidate = self.get_selected_candidate()
         has_candidate = bool(selected_candidate)
-        has_archived_candidates = bool(self.candidate_manager.get_archived_candidates(self.candidates))
-        has_archived_records = bool(self.csv_manager.get_archived_records(self.records, self.selected_candidate_id))
+        archived_candidate_count = len(self.candidate_manager.get_archived_candidates(self.candidates))
+        archived_record_count = len(self.csv_manager.get_archived_records(self.records, self.selected_candidate_id))
+        has_archived_candidates = bool(archived_candidate_count)
+        has_archived_records = bool(archived_record_count)
         selected_candidate_archived = bool(selected_candidate and selected_candidate.get("archived_at", "").strip())
         selected_record = self.csv_manager.find_record(self.records, self.current_record_id) if self.current_record_id else None
         selected_record_archived = bool(selected_record and selected_record.get("archived_at", "").strip())
@@ -533,8 +561,14 @@ class RecordManagerApp:
         self.candidate_menu.entryconfigure("Unarchive Candidate...", state="normal" if has_archived_candidates else "disabled")
         self.edit_candidate_button.configure(state="normal" if has_candidate and not selected_candidate_archived else "disabled")
         self.remove_candidate_button.configure(state="normal" if has_candidate and not selected_candidate_archived else "disabled")
-        self.restore_candidate_button.configure(state="normal" if has_archived_candidates else "disabled")
-        self.restore_record_button.configure(state="normal" if has_archived_records else "disabled")
+        self.restore_candidate_button.configure(
+            state="normal" if has_archived_candidates else "disabled",
+            text=f"Unarchive ({archived_candidate_count})" if archived_candidate_count else "Unarchive",
+        )
+        self.restore_record_button.configure(
+            state="normal" if has_archived_records else "disabled",
+            text=f"Unarchive Record ({archived_record_count})" if archived_record_count else "Unarchive Record...",
+        )
         self.archive_record_button.configure(state="normal" if self.current_record_id and not selected_record_archived else "disabled")
         self.save_record_button.configure(state="normal" if not selected_record_archived else "disabled")
 
@@ -563,7 +597,7 @@ class RecordManagerApp:
         dialog.minsize(620, 280)
         dialog.configure(bg=self.default_bg)
         dialog.columnconfigure(0, weight=1)
-        dialog.rowconfigure(1, weight=1)
+        dialog.rowconfigure(2, weight=1)
 
         tk.Label(dialog, text=heading, bg=self.default_bg, anchor="w").grid(
             row=0,
@@ -573,8 +607,25 @@ class RecordManagerApp:
             pady=(10, 6),
         )
 
+        search_var = tk.StringVar(value="")
+        result_count_var = tk.StringVar(value="")
+
+        search_frame = tk.Frame(dialog, bg=self.default_bg)
+        search_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 6))
+        search_frame.columnconfigure(1, weight=1)
+
+        tk.Label(search_frame, text="Search", bg=self.default_bg, anchor="w").grid(row=0, column=0, sticky="w")
+        search_entry = tk.Entry(search_frame, textvariable=search_var, relief=tk.SUNKEN, bd=1)
+        search_entry.grid(row=0, column=1, sticky="ew", padx=(8, 0))
+        tk.Label(search_frame, textvariable=result_count_var, bg=self.default_bg, anchor="e").grid(
+            row=0,
+            column=2,
+            sticky="e",
+            padx=(8, 0),
+        )
+
         tree_frame = tk.Frame(dialog, bg=self.default_bg, bd=1, relief=tk.SUNKEN)
-        tree_frame.grid(row=1, column=0, sticky="nsew", padx=10)
+        tree_frame.grid(row=2, column=0, sticky="nsew", padx=10)
         tree_frame.columnconfigure(0, weight=1)
         tree_frame.rowconfigure(0, weight=1)
 
@@ -589,18 +640,48 @@ class RecordManagerApp:
         scrollbar.grid(row=0, column=1, sticky="ns")
         tree.configure(yscrollcommand=scrollbar.set)
 
-        for row_id, values in rows:
-            tree.insert("", END, iid=row_id, values=values)
-
         button_frame = tk.Frame(dialog, bg=self.default_bg)
-        button_frame.grid(row=2, column=0, sticky="e", padx=10, pady=10)
+        button_frame.grid(row=3, column=0, sticky="e", padx=10, pady=10)
 
         selection_holder = {"value": ""}
+
+        def get_filtered_rows() -> list[tuple[str, tuple[str, ...]]]:
+            query = " ".join(search_var.get().strip().casefold().split())
+            if not query:
+                return list(rows)
+            return [
+                (row_id, values)
+                for row_id, values in rows
+                if query in " ".join(str(value) for value in values).casefold()
+            ]
+
+        def populate_dialog_tree() -> None:
+            existing_selection = tree.selection()
+            preferred_row_id = str(existing_selection[0]) if existing_selection else ""
+            tree.delete(*tree.get_children())
+
+            filtered_rows = get_filtered_rows()
+            result_count_var.set(f"{len(filtered_rows)} of {len(rows)}")
+            first_item = ""
+            for row_id, values in filtered_rows:
+                tree.insert("", END, iid=row_id, values=values)
+                if not first_item:
+                    first_item = row_id
+
+            if preferred_row_id and tree.exists(preferred_row_id):
+                tree.selection_set(preferred_row_id)
+                tree.focus(preferred_row_id)
+                tree.see(preferred_row_id)
+            elif first_item:
+                tree.selection_set(first_item)
+                tree.focus(first_item)
+                tree.see(first_item)
 
         def confirm_selection() -> None:
             selection = tree.selection()
             if not selection:
-                messagebox.showinfo(title, "Select an archived item first.", parent=dialog)
+                if rows:
+                    messagebox.showinfo(title, "Select matching item first.", parent=dialog)
                 return
             selection_holder["value"] = str(selection[0])
             dialog.destroy()
@@ -613,10 +694,9 @@ class RecordManagerApp:
 
         tree.bind("<Double-1>", lambda _event: confirm_selection())
         tree.bind("<Return>", lambda _event: confirm_selection())
-        if rows:
-            first_item = rows[0][0]
-            tree.selection_set(first_item)
-            tree.focus(first_item)
+        search_var.trace_add("write", lambda *_args: populate_dialog_tree())
+        populate_dialog_tree()
+        search_entry.focus_set()
         dialog.grab_set()
         dialog.wait_window()
         return selection_holder["value"]
@@ -679,17 +759,37 @@ class RecordManagerApp:
                 "Application restored last saved candidate selection and form state.",
             )
 
-    def apply_candidate_filter(self, selected_record_id: str = "", select_first: bool = False) -> None:
-        self.filtered_records = self.csv_manager.filter_records(
+    def apply_candidate_filter(
+        self,
+        selected_record_id: str = "",
+        select_first: bool = False,
+        preserve_current_if_hidden: bool = False,
+    ) -> None:
+        base_filtered_records = self.csv_manager.filter_records(
             self.records,
             self.selected_candidate_id,
             self.view_mode_var.get(),
         )
-        selected_record = self.populate_tree(selected_record_id=selected_record_id, select_first=select_first)
+        self.filtered_records = self.csv_manager.search_records(base_filtered_records, self.search_var.get())
+        target_record_id = selected_record_id or self.current_record_id
+        selected_record = self.populate_tree(selected_record_id=target_record_id, select_first=select_first)
         if selected_record is not None:
-            self.load_record_into_form(selected_record)
+            if selected_record.get("record_id", "") != self.current_record_id or not self.current_record_id:
+                self.load_record_into_form(selected_record)
         else:
-            self.prepare_form_for_candidate(self.get_selected_candidate())
+            current_record = self.csv_manager.find_record(self.records, self.current_record_id) if self.current_record_id else None
+            current_record_hidden_by_filter = bool(
+                current_record
+                and current_record.get("candidate_id", "") == self.selected_candidate_id
+                and current_record.get("record_id", "") not in {record.get("record_id", "") for record in self.filtered_records}
+            )
+            if preserve_current_if_hidden and current_record_hidden_by_filter:
+                self.tree.selection_remove(self.tree.selection())
+                self.populate_version_history(self.current_record_id)
+                self._sync_candidate_menu_state()
+            else:
+                self.prepare_form_for_candidate(self.get_selected_candidate())
+        self.update_summary()
         self.schedule_state_save()
 
     def populate_tree(self, selected_record_id: str = "", select_first: bool = False) -> dict[str, str] | None:
@@ -754,6 +854,27 @@ class RecordManagerApp:
             self._form_loading = False
         self._form_dirty = False
         self.set_mode("idle")
+
+    def clear_search(self) -> None:
+        if self.search_var.get():
+            self.search_var.set("")
+
+    def update_summary(self) -> None:
+        status_counts = Counter(record.get("status", "") or "Unknown" for record in self.filtered_records)
+        active_count = len([record for record in self.filtered_records if not record.get("archived_at", "").strip()])
+        archived_count = len(self.filtered_records) - active_count
+        summary_parts = [
+            f"Visible: {len(self.filtered_records)}",
+            f"Active: {active_count}",
+            f"Archived: {archived_count}",
+        ]
+        for status in self.status_values:
+            if status_counts.get(status):
+                summary_parts.append(f"{status}: {status_counts[status]}")
+        search_text = " ".join(self.search_var.get().strip().split())
+        if search_text:
+            summary_parts.append(f"Search: {search_text}")
+        self.summary_var.set(" | ".join(summary_parts))
 
     def load_record_into_form(self, record: dict[str, str]) -> None:
         self._form_loading = True
@@ -1025,7 +1146,21 @@ class RecordManagerApp:
             messagebox.showwarning("Unarchive Candidate", "Selected archived candidate could not be found.")
             return
 
-        if not messagebox.askyesno(
+        archived_linked_records = self.csv_manager.get_archived_records(self.records, candidate_id)
+        restore_linked_records = False
+        if archived_linked_records:
+            restore_choice = messagebox.askyesnocancel(
+                "Confirm Unarchive Candidate",
+                f"Unarchive candidate '{candidate.get('display_name', '')}'?\n\n"
+                f"Linked archived records: {len(archived_linked_records)}\n\n"
+                "Yes = restore candidate and linked archived records.\n"
+                "No = restore candidate only.\n"
+                "Cancel = keep current state.",
+            )
+            if restore_choice is None:
+                return
+            restore_linked_records = bool(restore_choice)
+        elif not messagebox.askyesno(
             "Confirm Unarchive Candidate",
             f"Unarchive candidate '{candidate.get('display_name', '')}'?",
         ):
@@ -1034,13 +1169,45 @@ class RecordManagerApp:
         try:
             updated_candidates = self._clone_candidates(self.candidates)
             restored_candidate = self.candidate_manager.restore_candidate(updated_candidates, candidate_id)
-            self.candidate_manager.save_candidates(updated_candidates)
+            restored_record_count = 0
+            if restore_linked_records:
+                previous_records = self._clone_records(self.records)
+                updated_records, restored_records = self.candidate_manager.sync_records_to_candidate(
+                    self._clone_records(self.records),
+                    restored_candidate,
+                    restore_records=True,
+                    restore_timestamp=restored_candidate.get("updated_at", ""),
+                )
+                self._persist_candidate_and_record_changes(
+                    updated_candidates,
+                    updated_records=updated_records,
+                    previous_records=previous_records,
+                    backup_reason="candidate_unarchived",
+                )
+                restored_record_count = len(restored_records)
+                for restored_record in restored_records:
+                    self.version_history_manager.add_version(
+                        restored_record.get("record_id", ""),
+                        "CANDIDATE_UNARCHIVE",
+                        restored_record,
+                        changed_at=restored_candidate.get("updated_at", ""),
+                    )
+            else:
+                self.candidate_manager.save_candidates(updated_candidates)
             self.reload_data(
                 selected_candidate_id=restored_candidate.get("candidate_id", ""),
                 selected_record_id="",
-                select_first=False,
+                select_first=restore_linked_records,
             )
-            self.set_status(f"Candidate '{restored_candidate.get('display_name', '')}' unarchived.")
+            if restore_linked_records:
+                self.session_manager.record_successful_save(
+                    len([record for record in self.records if not record.get("archived_at", "").strip()])
+                )
+                self.set_status(
+                    f"Candidate '{restored_candidate.get('display_name', '')}' unarchived with {restored_record_count} record(s)."
+                )
+            else:
+                self.set_status(f"Candidate '{restored_candidate.get('display_name', '')}' unarchived.")
         except Exception as exc:
             self.logger.exception("Failed to unarchive candidate")
             self.session_manager.record_error(str(exc))
@@ -1572,6 +1739,18 @@ class RecordManagerApp:
         self.apply_candidate_filter(selected_record_id="", select_first=bool(self.selected_candidate_id))
         self.set_status(f"Showing {self.view_mode_var.get().lower()} items.")
 
+    def on_search_changed(self, *_args: Any) -> None:
+        self.apply_candidate_filter(
+            selected_record_id=self.current_record_id,
+            select_first=False,
+            preserve_current_if_hidden=True,
+        )
+        search_text = " ".join(self.search_var.get().strip().split())
+        if search_text:
+            self.set_status(f"Search applied: {search_text}")
+        else:
+            self.set_status("Search cleared.")
+
     def on_form_changed(self, *_args: Any) -> None:
         if not self._form_loading:
             self._form_dirty = True
@@ -1600,6 +1779,7 @@ class RecordManagerApp:
                 "selected_candidate": self.candidate_var.get().strip() or "None",
                 "selected_candidate_id": self.selected_candidate_id,
                 "view_mode": self.view_mode_var.get().strip() or "Active",
+                "search_text": self.search_var.get().strip(),
                 "selected_record_id": self.current_record_id,
                 "mode": self.mode,
                 "last_opened_at": self.session_state.get("last_opened_at", ""),
@@ -1621,6 +1801,7 @@ class RecordManagerApp:
             "selected_candidate": self.candidate_var.get().strip() or "None",
             "selected_candidate_id": self.selected_candidate_id,
             "view_mode": self.view_mode_var.get().strip() or "Active",
+            "search_text": self.search_var.get().strip(),
             "selected_record_id": self.current_record_id,
             "mode": self.mode,
             "last_opened_at": self.session_state.get("last_opened_at", ""),

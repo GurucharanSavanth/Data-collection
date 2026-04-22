@@ -261,10 +261,13 @@ class CandidateManager:
         *,
         archive_records: bool = False,
         archive_timestamp: str = "",
+        restore_records: bool = False,
+        restore_timestamp: str = "",
     ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         updated_records: list[dict[str, str]] = []
         affected_records: list[dict[str, str]] = []
         timestamp = archive_timestamp or current_timestamp()
+        restore_at = restore_timestamp or current_timestamp()
 
         for record in records:
             updated_record = dict(record)
@@ -277,8 +280,15 @@ class CandidateManager:
                     updated_record["archived_at"] = timestamp
                     updated_record["updated_at"] = timestamp
                     changed = True
+                if restore_records and updated_record.get("archived_at", "").strip():
+                    updated_record["archived_at"] = ""
+                    updated_record["updated_at"] = restore_at
+                    changed = True
                 elif changed:
-                    updated_record["updated_at"] = timestamp
+                    if restore_records:
+                        updated_record["updated_at"] = restore_at
+                    else:
+                        updated_record["updated_at"] = timestamp
                 if changed:
                     affected_records.append(updated_record)
             updated_records.append(updated_record)

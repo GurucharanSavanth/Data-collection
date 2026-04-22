@@ -13,6 +13,7 @@ SESSION_DEFAULTS: dict[str, Any] = {
     "selected_candidate": "None",
     "selected_candidate_id": "",
     "view_mode": "Active",
+    "search_text": "",
     "selected_record_id": "",
     "mode": "idle",
     "last_opened_at": "",

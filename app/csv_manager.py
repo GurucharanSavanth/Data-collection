@@ -393,6 +393,31 @@ class CSVManager:
         filtered.sort(key=lambda item: item.get("updated_at", ""), reverse=True)
         return filtered
 
+    def search_records(self, records: list[dict[str, str]], query: str) -> list[dict[str, str]]:
+        normalized_query = " ".join(str(query).strip().casefold().split())
+        if not normalized_query:
+            return list(records)
+
+        searchable_fields = (
+            "record_id",
+            "title",
+            "application_number",
+            "referral_number",
+            "name",
+            "phone_number",
+            "status",
+            "short_note",
+            "created_at",
+            "updated_at",
+            "archived_at",
+        )
+        matched_records: list[dict[str, str]] = []
+        for record in records:
+            haystack = " ".join(record.get(field, "") for field in searchable_fields).casefold()
+            if normalized_query in haystack:
+                matched_records.append(record)
+        return matched_records
+
     def get_archived_records(self, records: list[dict[str, str]], candidate_id: str = "") -> list[dict[str, str]]:
         normalized_candidate_id = str(candidate_id).strip()
         archived_records = [

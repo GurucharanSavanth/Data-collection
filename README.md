@@ -1,42 +1,148 @@
 # Record Manager Dashboard
 
-This project is designed to be bootstrapped and launched from a single Windows batch file, `run_app.bat`.
+Windows desktop record-tracking app built with Python and Tkinter.
 
-## What it does
+## Recent UX Improvements
 
-- Installs Python silently for the current Windows user when Python is missing.
-- Verifies `python` and `pip`.
-- Recreates the managed application files from the BAT payload.
-- Preserves user-owned files such as CSV data and session JSON files.
-- Launches a Tkinter desktop application for managing contact-style records stored in `data/records.csv`.
+- Main table now supports live search across record ID, title, application number, referral number, candidate name, phone, status, notes, and timestamps.
+- Header now shows live summary counts for visible, active, archived, and status-specific records.
+- Unarchive dialogs now include search.
+- Candidate unarchive can restore candidate only or candidate plus linked archived records in one action.
 
-## Storage layout
+## Stack
 
-- `data/records.csv`: Primary editable record store.
-- `data/backups/`: Backup copies created before CSV replacement.
-- `data/temp/`: Temporary files used during atomic CSV writes.
-- `session/session_state.json`: Restored UI/session state.
-- `session/app_state.json`: Operational state, clean-shutdown marker, and last-save metadata.
-- `session/logs/application.log`: Technical error log.
+- Python 3.12+
+- Tkinter UI
+- CSV + JSON local persistence
+- PyInstaller onefile packaging
 
-## Record fields
+## App Launch
 
-- `record_id`
-- `title`
-- `category`
-- `name`
-- `phone_number`
-- `status`
-- `short_note`
-- `created_at`
-- `updated_at`
+Development launch:
 
-## UI behavior
+```powershell
+python .\app\main.py
+```
 
-- The dashboard table shows `Record ID`, `Name`, `Phone Number`, `Status`, `Created At`, `Updated At`, and `Short Note / Description`.
-- `Title` and `Category` use editable dropdowns: existing values are offered automatically, but new values can still be typed.
-- The right-side form supports `Title`, `Category`, `Name`, `Phone Number`, `Status`, `Created At`, `Updated At`, and `Short Note / Description`.
+One-click launcher:
 
-## Rerun safety
+```powershell
+.\run_app.bat
+```
 
-Running `run_app.bat` repeatedly does not delete existing CSV or session files. Managed code files are refreshed from the BAT payload; user data files are only created when missing.
+`run_app.bat` behavior:
+
+- Default: if source changed after last packaged build, auto-build `dist\RecordManagerDashboard.exe`, then launch exe.
+- If packaged exe is already current, launch exe directly.
+- If packaged exe is missing, auto-build exe first.
+- Source launch is now fallback or explicit override mode.
+
+Launcher overrides:
+
+- `RUN_APP_FORCE_SOURCE=1` -> skip exe and run `app\main.py`
+- `RUN_APP_USE_EXE=1` -> force packaged exe mode
+- `RUN_APP_FULL_BUILD=1` -> auto-build with full packaged validation before launch
+- `RUN_APP_NO_LAUNCH=1` -> validate/build only, do not open UI
+
+Launcher validation without UI:
+
+```powershell
+$env:RUN_APP_NO_LAUNCH=1
+.\run_app.bat
+```
+
+Force source mode:
+
+```powershell
+$env:RUN_APP_FORCE_SOURCE=1
+.\run_app.bat
+```
+
+Force exe mode:
+
+```powershell
+$env:RUN_APP_USE_EXE=1
+.\run_app.bat
+```
+
+## Writable Storage
+
+Source mode writes inside repo root:
+
+- `data\`
+- `config\`
+- `session\`
+
+Packaged `.exe` mode writes to:
+
+- `%LOCALAPPDATA%\RecordManagerDashboard\`
+
+Portable override options:
+
+- `RECORD_MANAGER_DATA_DIR=C:\path\to\custom-root`
+- `RECORD_MANAGER_PORTABLE=1`
+
+Frozen first run also migrates legacy sidecar files from next to `.exe` into `%LOCALAPPDATA%\RecordManagerDashboard\` when no storage override is set.
+
+Practical note:
+
+- `run_app.bat` default now prefers packaged exe workflow.
+- If you want runtime data to keep using repo-local `data\` and `session\`, use `RUN_APP_FORCE_SOURCE=1`.
+
+## Release Build
+
+Install build dependencies and produce validated onefile `.exe`:
+
+```powershell
+.\build.ps1
+```
+
+Batch wrapper:
+
+```powershell
+.\build.bat
+```
+
+Build pipeline steps:
+
+1. Install pinned PyInstaller toolchain from `requirements-build.txt`
+2. Run `python -m compileall .\app`
+3. Build onefile executable with `RecordManagerDashboard.spec`
+4. Run packaged `--self-test`
+5. Run packaged `--startup-smoke`
+
+Final artifact:
+
+- `dist\RecordManagerDashboard.exe`
+
+Build logs:
+
+- `build\logs\build_*.log`
+- `build\logs\exe_self_test_*.json`
+- `build\logs\exe_startup_smoke_*.json`
+
+## GitHub Releases
+
+Official release page:
+
+- `https://github.com/GurucharanSavanth/Data-collection/releases`
+
+Latest public release observed:
+
+- `V2`
+
+## Validation Modes
+
+Non-UI data/business flow validation:
+
+```powershell
+python .\app\main.py --self-test --storage-root .\build\source-self-test
+```
+
+Tk startup smoke:
+
+```powershell
+python .\app\main.py --startup-smoke --storage-root .\build\source-startup-smoke
+```
+
+Both modes also work on packaged executable.

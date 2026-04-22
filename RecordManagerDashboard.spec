@@ -1,12 +1,26 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
+
+project_root = Path(SPECPATH)
+app_dir = project_root / "app"
+version_file = project_root / "packaging" / "version_info.txt"
+
+hiddenimports = [
+    "tkinter",
+    "tkinter.ttk",
+    "tkinter.filedialog",
+    "tkinter.messagebox",
+    "tkinter.simpledialog",
+]
 
 a = Analysis(
-    ['app\\main.py'],
-    pathex=[],
+    [str(app_dir / "main.py")],
+    pathex=[str(app_dir)],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -22,11 +36,11 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='RecordManagerDashboard',
+    name="RecordManagerDashboard",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
@@ -35,4 +49,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version=str(version_file),
 )

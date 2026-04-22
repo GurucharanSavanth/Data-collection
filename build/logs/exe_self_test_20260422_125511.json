@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "mode": "self_test",
+  "storage_root": "G:\\Personal Builds\\tester\\Data-collection\\build\\validation-runtime",
+  "record_id": "REC-0CD899FAFB7B",
+  "candidate_id": "CAN-2E5B963AE85C",
+  "record_count": 1,
+  "candidate_count": 1,
+  "version_count": 6,
+  "export_path": "G:\\Personal Builds\\tester\\Data-collection\\build\\validation-runtime\\exports\\candidate_records_beta_example.csv",
+  "backup_count": 6
+}

@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "mode": "self_test",
+  "storage_root": "G:\\Personal Builds\\tester\\Data-collection\\build\\copied-exe-runtime",
+  "record_id": "REC-5132143301FF",
+  "candidate_id": "CAN-4FF73DC7AE45",
+  "record_count": 1,
+  "candidate_count": 1,
+  "version_count": 6,
+  "export_path": "G:\\Personal Builds\\tester\\Data-collection\\build\\copied-exe-runtime\\exports\\candidate_records_beta_example.csv",
+  "backup_count": 6
+}
