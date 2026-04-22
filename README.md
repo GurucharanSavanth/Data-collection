@@ -1,7 +1,8 @@
 # Record Manager Dashboard
 
 This project is designed to be bootstrapped and launched from a single Windows batch file, `run_app.bat`.
-
+Or 
+Just download ## https://github.com/GurucharanSavanth/Data-collection/releases the .exe file and run it 
 ## What it does
 
 - Installs Python silently for the current Windows user when Python is missing.
