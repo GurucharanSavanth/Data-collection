@@ -1,0 +1,194 @@
+name: Build Windows App
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to attach the built assets to (optional)
+        required: false
+        type: string
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    name: Validate and build Windows executable
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    outputs:
+      artifact_name: ${{ steps.meta.outputs.artifact_name }}
+      release_tag: ${{ steps.meta.outputs.release_tag }}
+      asset_base: ${{ steps.meta.outputs.asset_base }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: requirements-build.txt
+
+      - name: Resolve release metadata
+        id: meta
+        run: |
+          $releaseTag = ''
+          if ('${{ github.event_name }}' -eq 'release') {
+            $releaseTag = '${{ github.event.release.tag_name }}'
+          } elseif ('${{ inputs.release_tag }}' -ne '') {
+            $releaseTag = '${{ inputs.release_tag }}'
+          }
+
+          $refName = '${{ github.ref_name }}'
+          if (-not $refName) {
+            $refName = 'manual'
+          }
+
+          $safeRef = $refName -replace '[^0-9A-Za-z._-]', '-'
+          $safeTag = $releaseTag -replace '[^0-9A-Za-z._-]', '-'
+          if ($safeTag) {
+            $label = $safeTag
+          } else {
+            $label = "$safeRef-${{ github.run_number }}"
+          }
+
+          "release_tag=$releaseTag" >> $env:GITHUB_OUTPUT
+          "asset_base=RecordManagerDashboard-$label-windows-x64" >> $env:GITHUB_OUTPUT
+          "artifact_name=record-manager-dashboard-$label" >> $env:GITHUB_OUTPUT
+
+      - name: Clean generated directories
+        run: |
+          $paths = @(
+            '.\dist',
+            '.\release',
+            '.\build\logs',
+            '.\build\pyinstaller',
+            '.\build\validation-runtime',
+            '.\build\RecordManagerDashboard'
+          )
+
+          foreach ($path in $paths) {
+            if (Test-Path -LiteralPath $path) {
+              Remove-Item -LiteralPath $path -Recurse -Force
+            }
+          }
+
+      - name: Install build toolchain
+        run: python -m pip install --disable-pip-version-check -r requirements-build.txt
+
+      - name: Compile source
+        run: python -m compileall .\app
+
+      - name: Run source self-test
+        run: python .\app\main.py --self-test --storage-root .\build\ci-source-self-test --report .\build\logs\source_self_test.json
+
+      - name: Build packaged executable
+        run: .\build.ps1 -SkipDependencyInstall -SkipValidation
+
+      - name: Run packaged self-test
+        run: .\dist\RecordManagerDashboard.exe --self-test --storage-root .\build\ci-packaged-self-test --report .\build\logs\packaged_self_test.json
+
+      - name: Prepare release bundle
+        run: |
+          New-Item -ItemType Directory -Path .\release -Force | Out-Null
+          New-Item -ItemType Directory -Path .\release\logs -Force | Out-Null
+
+          $assetBase = '${{ steps.meta.outputs.asset_base }}'
+          $exeTarget = Join-Path (Resolve-Path .\release) "$assetBase.exe"
+          Copy-Item -LiteralPath .\dist\RecordManagerDashboard.exe -Destination $exeTarget -Force
+          if (Test-Path -LiteralPath .\build\logs) {
+            Copy-Item -Path .\build\logs\* -Destination .\release\logs -Recurse -Force
+          }
+
+          $hash = (Get-FileHash -LiteralPath $exeTarget -Algorithm SHA256).Hash
+          Set-Content -LiteralPath "$exeTarget.sha256" -Value "$hash *$([System.IO.Path]::GetFileName($exeTarget))" -Encoding ascii
+
+          $manifest = [ordered]@{
+            app = 'RecordManagerDashboard'
+            release_tag = '${{ steps.meta.outputs.release_tag }}'
+            ref = '${{ github.ref_name }}'
+            run_id = '${{ github.run_id }}'
+            sha = '${{ github.sha }}'
+            built_at_utc = (Get-Date).ToUniversalTime().ToString('o')
+            executable = [System.IO.Path]::GetFileName($exeTarget)
+            sha256 = $hash
+          } | ConvertTo-Json -Depth 4
+
+          Set-Content -LiteralPath .\release\release-manifest.json -Value $manifest -Encoding utf8
+
+      - name: Upload build bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: .\release
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  publish-release-assets:
+    name: Publish release assets
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
+    needs:
+      - build-windows
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Download build bundle
+        uses: actions/download-artifact@v5
+        with:
+          name: ${{ needs.build-windows.outputs.artifact_name }}
+          path: .\release
+
+      - name: Upload assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $releaseTag = '${{ needs.build-windows.outputs.release_tag }}'
+          if (-not $releaseTag) {
+            throw 'Release tag is required for release publishing.'
+          }
+
+          $files = @()
+          $exe = Get-ChildItem -Path .\release -Recurse -Filter '*.exe' | Select-Object -First 1
+          $checksum = Get-ChildItem -Path .\release -Recurse -Filter '*.sha256' | Select-Object -First 1
+          $manifest = Get-ChildItem -Path .\release -Recurse -Filter 'release-manifest.json' | Select-Object -First 1
+
+          if ($null -eq $exe) {
+            throw 'Release executable not found.'
+          }
+
+          if ($null -eq $checksum) {
+            throw 'Checksum file not found.'
+          }
+
+          if ($null -eq $manifest) {
+            throw 'Release manifest not found.'
+          }
+
+          $files += $exe.FullName
+          $files += $checksum.FullName
+          $files += $manifest.FullName
+
+          gh release upload $releaseTag @files --clobber
