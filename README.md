@@ -1,8 +1,15 @@
 # Record Manager Dashboard
 
+<<<<<<< HEAD
 Windows desktop record-tracking app built with Python and Tkinter.
 
 ## Recent UX Improvements
+=======
+This project is designed to be bootstrapped and launched from a single Windows batch file, `run_app.bat`.
+Or 
+Just download ## https://github.com/GurucharanSavanth/Data-collection/releases the .exe file and run it 
+## What it does
+>>>>>>> af37a0db5d1faa5ec579dda098240788194e376e
 
 - Main table now supports live search across record ID, title, application number, referral number, candidate name, phone, status, notes, and timestamps.
 - Header now shows live summary counts for visible, active, archived, and status-specific records.
